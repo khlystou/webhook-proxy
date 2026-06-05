@@ -71,11 +71,11 @@ EOF
 cd "$WORKDIR"
 
 echo "[4/7] Starting nginx..."
-docker compose up -d nginx
+docker-compose up -d nginx
 
 echo "[5/7] Obtaining Let's Encrypt certificate..."
 
-docker compose run --rm certbot certonly \
+docker-compose run --rm certbot certonly \
     --webroot \
     --webroot-path=/var/www/certbot \
     --agree-tos \
@@ -109,17 +109,17 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$SERVER_DOMAIN/privkey.pem;
 
     access_log off;
-    error_log /dev/null crit;
+    error_log off;
 
-    location = /webhook {
-
-        if (\$request_method != POST) {
-            return 405;
-        }
-
+    location = /webhook/tilda {
         client_max_body_size 5m;
+        resolver 8.8.8.8 1.1.1.1 valid=300s;
+        resolver_timeout 5s;
 
-        proxy_pass https://$TARGET_DOMAIN/api/webhook;
+        proxy_ssl_server_name on;
+        proxy_ssl_name $TARGET_DOMAIN;
+
+        proxy_pass https://$TARGET_DOMAIN/api/webhook/tilda;
 
         proxy_set_header Host $TARGET_DOMAIN;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -132,6 +132,10 @@ server {
         proxy_connect_timeout 30s;
         proxy_send_timeout 30s;
         proxy_read_timeout 30s;
+
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
     }
 
     location / {
@@ -140,7 +144,7 @@ server {
 }
 EOF
 
-docker compose restart nginx
+docker-compose restart nginx
 
 echo "[7/7] Installing automatic certificate renewal..."
 
@@ -177,6 +181,6 @@ echo "  ✓ Access logs disabled"
 echo "  ✓ All other URLs return 404"
 echo
 echo "Test certificate renewal:"
-echo "  cd $WORKDIR && docker compose run --rm certbot renew --dry-run"
+echo "  cd $WORKDIR && docker-compose run --rm certbot renew --dry-run"
 echo
 echo "========================================"
