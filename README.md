@@ -68,6 +68,12 @@ docker compose version
 
 ## Установка
 
+Скачать скрипт
+
+```bash
+wget -O install.sh "https://raw.githubusercontent.com/khlystou/webhook-proxy/refs/heads/main/install.sh";
+```
+
 Сделайте скрипт исполняемым:
 
 ```bash
